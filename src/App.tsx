@@ -313,28 +313,29 @@ export default function App() {
       const imgW = imageWidth || 2048;
       const imgH = imageHeight || 1280;
       
-      const prompt = `分析这张建筑装饰图片。请只识别以下类型的物品：
+      const prompt = `分析这张建筑装饰图片。请仔细扫描整张图片，从左到右、从上到下全面覆盖。
+
+请识别以下类型的物品：
 1. 建筑装饰材料：地板、墙面、吊顶、门窗
 2. 家具：沙发、餐桌、椅子、床、衣柜等
 
-重要要求：
-- 每个物品一个热点，热点坐标必须是像素值
-- 坐标基于图片左上角原点，x向右增加，y向下增加
-- 热点应该覆盖图片中所有识别到的物品，从左到右分布
+⚠️ 关键要求：
+- 必须扫描图片的整个宽度，包括左侧(x < 宽度/3)、中间(宽度/3 < x < 宽度*2/3)和右侧(x > 宽度*2/3)区域
+- 每个物品一个热点，坐标是物品的中心点像素坐标
+- 坐标基于图片左上角原点，x向右增加(0到图片宽度)，y向下增加(0到图片高度)
+- 确保热点在x轴上均匀分布，覆盖整张图片
 
 返回 JSON 格式：
 { 
-  "imageWidth": 图片宽度像素值,
-  "imageHeight": 图片高度像素值,
+  "imageWidth": 你看到的图片宽度像素值,
+  "imageHeight": 你看到的图片高度像素值,
   "hotspots": [
     { "id": "1", "x": 像素x坐标, "y": 像素y坐标, "materialName": "分类名", "materialType": "具体材料名" }
   ], 
   "materials": [
     { "id": 1, "name": "材料名", "type": "大类", "characteristics": "特点1,特点2", "base_price_min": 100, "base_price_max": 300, "install_price_min": 20, "install_price_max": 50 }
   ]
-}
-
-请确保 imageWidth 和 imageHeight 是你实际看到的图片尺寸！`;
+}`;
       
       const response = await fetch("/api/analyze", {
         method: "POST",
@@ -386,6 +387,17 @@ export default function App() {
             aiImageWidth,
             aiImageHeight
           });
+        }
+      }
+      
+      // 验证热点分布 - 检查是否覆盖整个图片宽度
+      if (hotspots.length > 0) {
+        const maxX = Math.max(...hotspots.map(s => s.rawX || 0));
+        const coverageRatio = maxX / aiImageWidth;
+        console.log('📊 热点覆盖分析: 最大x坐标=' + maxX + ', 图片宽度=' + aiImageWidth + ', 覆盖率=' + (coverageRatio * 100).toFixed(1) + '%');
+        
+        if (coverageRatio < 0.6) {
+          console.warn('⚠️ 警告: 热点主要集中在图片左侧(' + (coverageRatio * 100).toFixed(1) + '%)，右侧区域未被识别');
         }
       }
       
