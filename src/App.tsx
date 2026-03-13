@@ -173,7 +173,7 @@ export default function App() {
     // 直接返回图片百分比定位
     // 由于容器没有固定高度，由图片撑开，图片填满容器宽度
     // 所以百分比定位直接有效
-    console.log('✅ 最终热点位置: left =', percentX.toFixed(1) + '%', top =', percentY.toFixed(1) + '%');
+    console.log('✅ 最终热点位置: left =', percentX.toFixed(1) + '%', ', top =', percentY.toFixed(1) + '%');
     console.log('========================================');
     
     return { left: `${percentX.toFixed(1)}%`, top: `${percentY.toFixed(1)}%` };
