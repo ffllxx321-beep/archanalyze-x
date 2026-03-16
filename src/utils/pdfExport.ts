@@ -1,6 +1,6 @@
 // PDF Export Utility for Budget Report
-import { BudgetEntry } from './types';
-import { Language, getLocale } from './locales';
+import { BudgetEntry } from '../types';
+import { Language, getLocale } from '../locales';
 
 interface PDFReportData {
   entries: BudgetEntry[];
@@ -88,13 +88,13 @@ export const generatePDFReport = (data: PDFReportData): void => {
 
   const txt = translations[data.language];
 
-  const html = `
+  const html = \`
 <!DOCTYPE html>
-<html lang="${data.language}">
+<html lang="\${data.language}">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>${txt.title}</title>
+  <title>\${txt.title}</title>
   <style>
     * {
       margin: 0;
@@ -377,16 +377,6 @@ export const generatePDFReport = (data: PDFReportData): void => {
       transform: translateY(-2px);
     }
     
-    .chart-placeholder {
-      background: #f8fafc;
-      border: 2px dashed #e5e7eb;
-      border-radius: 8px;
-      padding: 40px;
-      text-align: center;
-      color: #9ca3af;
-      margin: 20px 0;
-    }
-    
     @media print {
       .print-btn { display: none !important; }
     }
@@ -396,75 +386,70 @@ export const generatePDFReport = (data: PDFReportData): void => {
   <div class="page">
     <div class="watermark">ArchAnalyze</div>
     
-    <!-- Header -->
     <div class="header">
       <div class="logo-section">
         <div class="logo">A</div>
         <div class="title-section">
-          <h1>${txt.title}</h1>
-          <p>${txt.subtitle}</p>
+          <h1>\${txt.title}</h1>
+          <p>\${txt.subtitle}</p>
         </div>
       </div>
       <div class="date-section">
-        <strong>${txt.date}</strong>
-        ${dateStr}<br>
-        ${timeStr}
+        <strong>\${txt.date}</strong>
+        \${dateStr}<br>
+        \${timeStr}
       </div>
     </div>
     
-    <!-- Summary Card -->
     <div class="summary-card">
       <div class="summary-icon">¥</div>
       <div class="summary-content">
-        <div class="summary-label">${txt.totalBudget}</div>
-        <div class="summary-value">¥${data.totalBudget.toLocaleString()}<span class="summary-currency">CNY</span></div>
+        <div class="summary-label">\${txt.totalBudget}</div>
+        <div class="summary-value">¥\${data.totalBudget.toLocaleString()}<span class="summary-currency">CNY</span></div>
       </div>
     </div>
     
-    <!-- Quantity Table -->
-    <div class="section-title">${txt.quantityList}</div>
+    <div class="section-title">\${txt.quantityList}</div>
     <table>
       <thead>
         <tr>
           <th style="width: 30px">#</th>
-          <th>${txt.materialName}</th>
-          <th class="text-center">${txt.quantity}</th>
-          <th class="text-center">${txt.unit}</th>
-          <th class="text-right">${txt.unitPrice} (¥)</th>
-          <th class="text-right">${txt.totalPrice} (¥)</th>
+          <th>\${txt.materialName}</th>
+          <th class="text-center">\${txt.quantity}</th>
+          <th class="text-center">\${txt.unit}</th>
+          <th class="text-right">\${txt.unitPrice} (¥)</th>
+          <th class="text-right">\${txt.totalPrice} (¥)</th>
         </tr>
       </thead>
       <tbody>
-        ${data.entries.map((entry, index) => `
+        \${data.entries.map((entry, index) => \`
           <tr>
-            <td class="text-center">${index + 1}</td>
-            <td>${entry.materialName}</td>
-            <td class="text-center">${entry.quantity || '-'}</td>
-            <td class="text-center">${entry.unit}</td>
-            <td class="text-right">¥${entry.unitPrice.toLocaleString()}</td>
-            <td class="text-right">¥${entry.totalPrice.toLocaleString()}</td>
+            <td class="text-center">\${index + 1}</td>
+            <td>\${entry.materialName}</td>
+            <td class="text-center">\${entry.quantity || '-'}</td>
+            <td class="text-center">\${entry.unit}</td>
+            <td class="text-right">¥\${entry.unitPrice.toLocaleString()}</td>
+            <td class="text-right">¥\${entry.totalPrice.toLocaleString()}</td>
           </tr>
-        `).join('')}
+        \`).join('')}
         <tr class="total-row">
-          <td colspan="5" class="text-right" style="font-weight: 700;">${txt.totalBudget}</td>
-          <td class="text-right" style="font-size: 16px; color: #2563eb;">¥${data.totalBudget.toLocaleString()}</td>
+          <td colspan="5" class="text-right" style="font-weight: 700;">\${txt.totalBudget}</td>
+          <td class="text-right" style="font-size: 16px; color: #2563eb;">¥\${data.totalBudget.toLocaleString()}</td>
         </tr>
       </tbody>
     </table>
     
-    <!-- Notes -->
     <div class="notes-section">
-      <div class="notes-title">${txt.notes}</div>
+      <div class="notes-title">\${txt.notes}</div>
       <ul class="notes-list">
-        <li>${txt.note1}</li>
-        <li>${txt.note2}</li>
-        <li>${txt.note3}</li>
+        <li>\${txt.note1}</li>
+        <li>\${txt.note2}</li>
+        <li>\${txt.note3}</li>
       </ul>
     </div>
     
-    <!-- Footer -->
     <div class="footer">
-      ${txt.footer} | ${dateStr} ${timeStr}
+      \${txt.footer} | \${dateStr} \${timeStr}
     </div>
   </div>
   
@@ -474,16 +459,15 @@ export const generatePDFReport = (data: PDFReportData): void => {
       <path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"></path>
       <rect x="6" y="14" width="12" height="8"></rect>
     </svg>
-    ${data.language === 'zh' ? '打印 / 导出 PDF' : data.language === 'ja' ? '印刷 / PDFエクスポート' : 'Print / Export PDF'}
+    \${data.language === 'zh' ? '打印 / 导出 PDF' : data.language === 'ja' ? '印刷 / PDFエクスポート' : 'Print / Export PDF'}
   </button>
 </body>
 </html>
-`;
+\`;
 
   printWindow.document.write(html);
   printWindow.document.close();
   
-  // Auto-trigger print dialog after content loads
   printWindow.onload = () => {
     setTimeout(() => {
       printWindow.focus();
