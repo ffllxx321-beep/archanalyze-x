@@ -911,6 +911,7 @@ Return in JSON format:
                   <div className="flex-1 overflow-hidden">
                     <BrandLibrary 
                       brands={allBrands}
+                      language={language}
                       maxHeight={imageHeight ? `${imageHeight - 160}px` : '600px'} 
                       initialCategory={selectedHotspot?.materialType}
                       broadCategory={selectedHotspot?.materialName}
