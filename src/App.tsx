@@ -49,6 +49,7 @@ import { DataCenter } from './components/DataCenter';
 import { dataStore } from './store/dataStore';
 import { mockShowrooms } from './data/mockData';
 import { locales, Language, getLocale } from './locales';
+import { generatePDFReport } from './utils/pdfExport';
 
 // 创建国际化 Hook
 const useTranslation = () => {
@@ -970,7 +971,9 @@ Return in JSON format:
                     <FileSpreadsheet className="w-4 h-4" /> {t.importRevit}
                     <input type="file" className="hidden" accept=".csv" onChange={handleRevitUpload} />
                   </label>
-                  <button className="flex items-center gap-2 px-4 py-2 rounded-lg bg-slate-800 text-white text-sm font-bold hover:bg-slate-700 transition-colors">
+                  <button 
+                    onClick={() => generatePDFReport({ entries: budgetEntries, totalBudget, language })}
+                    className="flex items-center gap-2 px-4 py-2 rounded-lg bg-slate-800 text-white text-sm font-bold hover:bg-slate-700 transition-colors">
                     <Download className="w-4 h-4" /> {t.exportPDF}
                   </button>
                 </div>
@@ -1289,7 +1292,9 @@ Return in JSON format:
                 >
                   <Plus className="w-4 h-4" /> {t.newBrand}
                 </button>
-                <button className="flex items-center gap-2 px-4 py-2 rounded-lg bg-slate-800 text-white text-sm font-bold hover:bg-slate-700 transition-colors">
+                <button 
+                    onClick={() => generatePDFReport({ entries: budgetEntries, totalBudget, language })}
+                    className="flex items-center gap-2 px-4 py-2 rounded-lg bg-slate-800 text-white text-sm font-bold hover:bg-slate-700 transition-colors">
                   <Download className="w-4 h-4" /> {t.importData}
                 </button>
                 <div className="flex-1" />
@@ -1551,7 +1556,7 @@ Return in JSON format:
       </AnimatePresence>
 
       {/* Data Center */}
-      <DataCenter isOpen={isDataCenterOpen} onClose={() => setIsDataCenterOpen(false)} />
+      <DataCenter isOpen={isDataCenterOpen} onClose={() => setIsDataCenterOpen(false)} language={language} />
     </div>
   );
 }
