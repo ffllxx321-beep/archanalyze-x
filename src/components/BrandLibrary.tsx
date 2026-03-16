@@ -3,6 +3,7 @@ import { Search, Star, Building2, MessageSquare, Box, Filter, ChevronRight, Aler
 import Fuse from 'fuse.js';
 import { Brand } from '../types';
 import { mockBrands } from '../data/mockData';
+import { locales, Language, getLocale } from '../locales';
 
 interface BrandLibraryProps {
   brands: Brand[];
@@ -10,6 +11,7 @@ interface BrandLibraryProps {
   maxHeight?: string;
   initialCategory?: string | null;
   broadCategory?: string | null;
+  language?: Language;
 }
 
 export const BrandLibrary: React.FC<BrandLibraryProps> = ({ 
@@ -17,8 +19,11 @@ export const BrandLibrary: React.FC<BrandLibraryProps> = ({
   onSelectBrand, 
   maxHeight, 
   initialCategory,
-  broadCategory 
+  broadCategory,
+  language = 'zh'
 }) => {
+  const t = getLocale(language);
+  
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
   const [sortOrder, setSortOrder] = useState<'rating' | 'price' | 'none'>('none');
@@ -55,14 +60,19 @@ export const BrandLibrary: React.FC<BrandLibraryProps> = ({
     // Fuzzy match: check if one contains the other
     if (brand.includes(selected) || selected.includes(brand)) return true;
     
-    // Match on keywords
-    const keywords = ['地板', '瓷砖', '卫浴', '涂料', '灯具', '五金', '家具', '厨电', '门', '窗'];
+    // Match on keywords (multi-language support)
+    const keywords = language === 'zh' 
+      ? ['地板', '瓷砖', '卫浴', '涂料', '灯具', '五金', '家具', '厨电', '门', '窗']
+      : language === 'ja'
+      ? ['フローリング', 'タイル', 'バスルーム', '塗料', '照明', '金物', '家具', 'キッチン家電', 'ドア', '窓']
+      : ['flooring', 'tile', 'bathroom', 'paint', 'lighting', 'hardware', 'furniture', 'kitchen', 'door', 'window'];
+    
     for (const kw of keywords) {
       if (brand.includes(kw) && selected.includes(kw)) return true;
     }
     
     // Common material type mappings
-    const mappings: Record<string, string[]> = {
+    const mappings: Record<string, string[]> = language === 'zh' ? {
       '地板': ['实木地板', '复合地板', '强化地板', '竹地板', '木地板', '地砖'],
       '瓷砖': ['大理石瓷砖', '抛光砖', '仿古砖', '木纹瓷砖', '墙砖'],
       '涂料': ['乳胶漆', '艺术漆', '硅藻泥', '贝壳粉', '油漆'],
@@ -70,7 +80,7 @@ export const BrandLibrary: React.FC<BrandLibraryProps> = ({
       '灯具': ['吊灯', '吸顶灯', '射灯', '灯带', '筒灯'],
       '家具': ['沙发', '餐桌', '床', '衣柜', '书柜', '茶几', '鞋柜'],
       '门窗': ['防盗门', '卧室门', '卫生间门', '推拉门', '窗户', '铝合金窗']
-    };
+    } : {};
     
     for (const [mainCat, subCats] of Object.entries(mappings)) {
       const brandMatch = subCats.some(s => brand.includes(s)) || subCats.some(s => brand === s);
@@ -82,15 +92,11 @@ export const BrandLibrary: React.FC<BrandLibraryProps> = ({
   };
 
   const filteredBrands = useMemo(() => {
-    // If there's a search query, we search across all brands
     let results = searchQuery 
       ? fuse.search(searchQuery).map(r => r.item)
       : brands;
 
-    // Only apply category filter if no search query is present, 
-    // OR if the user explicitly selected a category from the list (not just from initialCategory)
     if (selectedCategory && !searchQuery) {
-      // Use fuzzy matching instead of exact match
       results = results.filter(b => isMaterialMatch(b.sub_category, selectedCategory));
     }
 
@@ -104,16 +110,12 @@ export const BrandLibrary: React.FC<BrandLibraryProps> = ({
   }, [searchQuery, selectedCategory, sortOrder, fuse, brands]);
 
   const fallbackBrands = useMemo(() => {
-    // Fallback logic: if we have a specific category selected but no results, 
-    // show brands from the broader category.
     if (filteredBrands.length > 0 || !broadCategory || searchQuery) return [];
     
-    // Filter brands that match the broad category
     let results = brands.filter(b => 
       b.category === broadCategory || b.sub_category.includes(broadCategory)
     );
 
-    // If still no results, maybe try fuzzy matching on the broad category
     if (results.length === 0) {
       const broadFuse = new Fuse(brands, { keys: ['category', 'sub_category'], threshold: 0.4 });
       results = broadFuse.search(broadCategory).map(r => r.item);
@@ -130,14 +132,113 @@ export const BrandLibrary: React.FC<BrandLibraryProps> = ({
 
   const isShowingFallback = !searchQuery && filteredBrands.length === 0 && fallbackBrands.length > 0 && selectedCategory === initialCategory;
 
+  // Translations for BrandLibrary
+  const brandLibText = {
+    zh: {
+      title: '品牌库推荐',
+      totalSuppliers: '共收录',
+      certifiedSuppliers: '个认证供应商',
+      sortByRating: '按评分排序',
+      sortByPrice: '按价格排序',
+      defaultSort: '默认排序',
+      rating: '评分',
+      price: '价格',
+      reset: '重置',
+      resetAllFilters: '重置所有过滤器',
+      searchPlaceholder: '搜索品牌、材料类型或供应商...',
+      all: '全部',
+      notFound: '尚未收录',
+      relatedBrands: '相关品牌',
+      suggestAdd: '建议手动添加该品类品牌，或查看下方相近品类品牌。',
+      recommendForYou: '为您推荐',
+      related: '相关',
+      model: '型号：',
+      estimatedUnitPrice: '预估单价：',
+      supplier: '供应商：',
+      viewDetails: '查看详情',
+      noMatchFound: '未找到匹配的品牌',
+      tryOtherSearch: '请尝试其他搜索条件',
+      currentCategory: '当前分类',
+      noBrandsInCategory: '暂无收录品牌',
+      canAddManually: '您可以手动添加新品牌到品牌库',
+      viewAllBrands: '查看全部品牌',
+      requestSample: '申请实物小样',
+      freeDelivery: '免费配送至您的工作室'
+    },
+    en: {
+      title: 'Brand Recommendations',
+      totalSuppliers: 'Total',
+      certifiedSuppliers: 'certified suppliers',
+      sortByRating: 'Sort by rating',
+      sortByPrice: 'Sort by price',
+      defaultSort: 'Default sort',
+      rating: 'Rating',
+      price: 'Price',
+      reset: 'Reset',
+      resetAllFilters: 'Reset all filters',
+      searchPlaceholder: 'Search brands, materials or suppliers...',
+      all: 'All',
+      notFound: 'No brands found for',
+      relatedBrands: 'related brands',
+      suggestAdd: 'Suggest adding brands for this category manually, or check similar brands below.',
+      recommendForYou: 'Recommendations for',
+      related: 'related',
+      model: 'Model:',
+      estimatedUnitPrice: 'Est. Price:',
+      supplier: 'Supplier:',
+      viewDetails: 'View Details',
+      noMatchFound: 'No matching brands found',
+      tryOtherSearch: 'Try different search criteria',
+      currentCategory: 'Current category',
+      noBrandsInCategory: 'has no brands yet',
+      canAddManually: 'You can manually add new brands to the library',
+      viewAllBrands: 'View all brands',
+      requestSample: 'Request Sample',
+      freeDelivery: 'Free delivery to your studio'
+    },
+    ja: {
+      title: 'ブランド推奨',
+      totalSuppliers: '合計',
+      certifiedSuppliers: '認定サプライヤー',
+      sortByRating: '評価順でソート',
+      sortByPrice: '価格順でソート',
+      defaultSort: 'デフォルト順',
+      rating: '評価',
+      price: '価格',
+      reset: 'リセット',
+      resetAllFilters: 'すべてのフィルターをリセット',
+      searchPlaceholder: 'ブランド、材料、サプライヤーを検索...',
+      all: 'すべて',
+      notFound: 'ブランドが見つかりません',
+      relatedBrands: '関連ブランド',
+      suggestAdd: 'このカテゴリーのブランドを手動で追加するか、下の類似ブランドをご確認ください。',
+      recommendForYou: 'おすすめ',
+      related: '関連',
+      model: 'モデル：',
+      estimatedUnitPrice: '推定単価：',
+      supplier: 'サプライヤー：',
+      viewDetails: '詳細を見る',
+      noMatchFound: '一致するブランドが見つかりません',
+      tryOtherSearch: '別の検索条件をお試しください',
+      currentCategory: '現在のカテゴリー',
+      noBrandsInCategory: 'にブランドがありません',
+      canAddManually: '新しいブランドをライブラリに追加できます',
+      viewAllBrands: 'すべてのブランドを表示',
+      requestSample: 'サンプル請求',
+      freeDelivery: 'スタジオまで無料配送'
+    }
+  };
+  
+  const txt = brandLibText[language];
+
   return (
     <div className="flex flex-col h-full bg-slate-900 border border-slate-800 rounded-2xl overflow-hidden shadow-xl">
       {/* Header & Search */}
       <div className="p-6 border-b border-slate-800 bg-slate-800/30 space-y-4 shrink-0">
         <div className="flex items-center justify-between">
           <div>
-            <h3 className="font-bold text-lg">品牌库推荐</h3>
-            <p className="text-xs text-slate-500 mt-1">共收录 {brands.length} 个认证供应商</p>
+            <h3 className="font-bold text-lg">{txt.title}</h3>
+            <p className="text-xs text-slate-500 mt-1">{txt.totalSuppliers} {brands.length} {txt.certifiedSuppliers}</p>
           </div>
           <div className="flex gap-2">
             <button 
@@ -147,10 +248,10 @@ export const BrandLibrary: React.FC<BrandLibraryProps> = ({
                 else setSortOrder('none');
               }}
               className={`p-2 rounded-lg transition-colors flex items-center gap-2 ${sortOrder !== 'none' ? 'bg-blue-600 text-white' : 'bg-slate-800 text-slate-400 hover:text-white'}`}
-              title={sortOrder === 'rating' ? '按评分排序' : sortOrder === 'price' ? '按价格排序' : '默认排序'}
+              title={sortOrder === 'rating' ? txt.sortByRating : sortOrder === 'price' ? txt.sortByPrice : txt.defaultSort}
             >
               <ArrowUpDown className="w-4 h-4" />
-              {sortOrder !== 'none' && <span className="text-[10px] font-bold">{sortOrder === 'rating' ? '评分' : '价格'}</span>}
+              {sortOrder !== 'none' && <span className="text-[10px] font-bold">{sortOrder === 'rating' ? txt.rating : txt.price}</span>}
             </button>
             <button 
               onClick={() => {
@@ -159,10 +260,10 @@ export const BrandLibrary: React.FC<BrandLibraryProps> = ({
                 setSortOrder('none');
               }}
               className="px-3 py-2 bg-slate-800 rounded-lg text-slate-400 hover:text-white transition-colors flex items-center gap-2"
-              title="重置所有过滤器"
+              title={txt.resetAllFilters}
             >
               <Filter className="w-4 h-4" />
-              <span className="text-[10px] font-bold">重置</span>
+              <span className="text-[10px] font-bold">{txt.reset}</span>
             </button>
           </div>
         </div>
@@ -171,7 +272,7 @@ export const BrandLibrary: React.FC<BrandLibraryProps> = ({
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-500" />
           <input
             type="text"
-            placeholder="搜索品牌、材料类型或供应商..."
+            placeholder={txt.searchPlaceholder}
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
             className="w-full bg-slate-950 border-slate-800 rounded-xl pl-10 pr-10 py-2.5 text-sm focus:ring-2 focus:ring-blue-500/50 focus:border-blue-500 transition-all"
@@ -192,7 +293,7 @@ export const BrandLibrary: React.FC<BrandLibraryProps> = ({
             onClick={() => setSelectedCategory(null)}
             className={`px-3 py-1.5 rounded-lg text-[10px] font-bold uppercase tracking-wider whitespace-nowrap border transition-all ${!selectedCategory ? 'bg-blue-600 border-blue-500 text-white' : 'bg-slate-800 border-slate-700 text-slate-400 hover:border-slate-600'}`}
           >
-            全部
+            {txt.all}
           </button>
           {categories.map(cat => (
             <button
@@ -215,11 +316,11 @@ export const BrandLibrary: React.FC<BrandLibraryProps> = ({
           <div className="p-4 rounded-xl bg-amber-600/10 border border-amber-500/30 mb-6">
             <div className="flex items-center gap-3 text-amber-500 mb-2">
               <AlertCircle className="w-4 h-4" />
-              <p className="text-xs font-bold">尚未收录 "{selectedCategory}" 相关品牌</p>
+              <p className="text-xs font-bold">{txt.notFound} "{selectedCategory}" {txt.relatedBrands}</p>
             </div>
-            <p className="text-[10px] text-slate-400 mb-3">建议手动添加该品类品牌，或查看下方相近品类品牌。</p>
+            <p className="text-[10px] text-slate-400 mb-3">{txt.suggestAdd}</p>
             <div className="flex items-center gap-2 text-blue-400 text-[10px] font-bold">
-              <span>为您推荐 {broadCategory} 相关的品牌</span>
+              <span>{txt.recommendForYou} {broadCategory} {txt.related} {txt.relatedBrands}</span>
               <div className="h-[1px] flex-1 bg-blue-500/20" />
             </div>
           </div>
@@ -253,21 +354,21 @@ export const BrandLibrary: React.FC<BrandLibraryProps> = ({
               
               <div className="space-y-2 mb-4">
                 <div className="flex justify-between text-xs">
-                  <span className="text-slate-500">型号：</span>
+                  <span className="text-slate-500">{txt.model}</span>
                   <span className="font-medium text-slate-300">{brand.model}</span>
                 </div>
                 <div className="flex justify-between text-xs">
-                  <span className="text-slate-500">预估单价：</span>
+                  <span className="text-slate-500">{txt.estimatedUnitPrice}</span>
                   <span className="font-bold text-white">¥{brand.price}/{brand.unit}</span>
                 </div>
                 <div className="flex justify-between text-xs">
-                  <span className="text-slate-500">供应商：</span>
+                  <span className="text-slate-500">{txt.supplier}</span>
                   <span className="font-medium text-blue-400 truncate max-w-[150px]">{brand.supplier}</span>
                 </div>
               </div>
 
               <div className="flex gap-2">
-                <button className="flex-1 bg-slate-800 text-white text-xs font-bold py-2 rounded-lg hover:bg-slate-700 transition-colors">查看详情</button>
+                <button className="flex-1 bg-slate-800 text-white text-xs font-bold py-2 rounded-lg hover:bg-slate-700 transition-colors">{txt.viewDetails}</button>
                 <button className="p-2 border border-slate-700 rounded-lg text-slate-400 hover:text-white hover:bg-slate-800 transition-colors">
                   <MessageSquare className="w-4 h-4" />
                 </button>
@@ -277,16 +378,16 @@ export const BrandLibrary: React.FC<BrandLibraryProps> = ({
         ) : (
           <div className="py-12 text-center text-slate-500">
             <Box className="w-12 h-12 mx-auto mb-4 opacity-20" />
-            <p className="text-sm font-medium mb-2">未找到匹配的品牌</p>
+            <p className="text-sm font-medium mb-2">{txt.noMatchFound}</p>
             <p className="text-xs text-slate-400 mb-4">
-              {broadCategory ? `当前分类 "${selectedCategory || broadCategory}" 暂无收录品牌` : '请尝试其他搜索条件'}
+              {broadCategory ? `${txt.currentCategory} "${selectedCategory || broadCategory}" ${txt.noBrandsInCategory}` : txt.tryOtherSearch}
             </p>
-            <p className="text-xs text-blue-400 mb-2">您可以手动添加新品牌到品牌库</p>
+            <p className="text-xs text-blue-400 mb-2">{txt.canAddManually}</p>
             <button 
               onClick={() => { setSearchQuery(''); setSelectedCategory(null); }}
               className="mt-2 text-blue-500 text-xs font-bold hover:underline"
             >
-              查看全部品牌
+              {txt.viewAllBrands}
             </button>
           </div>
         )}
@@ -299,8 +400,8 @@ export const BrandLibrary: React.FC<BrandLibraryProps> = ({
             <Box className="w-4 h-4" />
           </div>
           <div>
-            <p className="text-xs font-bold">申请实物小样</p>
-            <p className="text-[10px] text-slate-500">免费配送至您的工作室</p>
+            <p className="text-xs font-bold">{txt.requestSample}</p>
+            <p className="text-[10px] text-slate-500">{txt.freeDelivery}</p>
           </div>
           <ChevronRight className="w-4 h-4 text-slate-600 ml-auto" />
         </div>
