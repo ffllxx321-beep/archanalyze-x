@@ -12,7 +12,6 @@ interface PDFReportData {
 export const generatePDFReport = (data: PDFReportData): void => {
   const t = getLocale(data.language);
   
-  // Create a hidden iframe for printing
   const printWindow = window.open('', '_blank');
   if (!printWindow) {
     alert(data.language === 'zh' ? '请允许弹出窗口以导出 PDF' : data.language === 'ja' ? 'PDFをエクスポートするにはポップアップを許可してください' : 'Please allow popups to export PDF');
@@ -88,382 +87,123 @@ export const generatePDFReport = (data: PDFReportData): void => {
 
   const txt = translations[data.language];
 
-  const html = \`
-<!DOCTYPE html>
-<html lang="\${data.language}">
+  // Build table rows
+  const tableRows = data.entries.map((entry, index) => `
+          <tr>
+            <td class="text-center">${index + 1}</td>
+            <td>${entry.materialName}</td>
+            <td class="text-center">${entry.quantity || '-'}</td>
+            <td class="text-center">${entry.unit}</td>
+            <td class="text-right">¥${entry.unitPrice.toLocaleString()}</td>
+            <td class="text-right">¥${entry.totalPrice.toLocaleString()}</td>
+          </tr>`).join('');
+
+  const html = `<!DOCTYPE html>
+<html lang="${data.language}">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>\${txt.title}</title>
+  <title>${txt.title}</title>
   <style>
-    * {
-      margin: 0;
-      padding: 0;
-      box-sizing: border-box;
-    }
-    
-    body {
-      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
-      color: #1a1a2e;
-      background: #fff;
-      font-size: 12px;
-      line-height: 1.5;
-    }
-    
-    .page {
-      width: 210mm;
-      min-height: 297mm;
-      padding: 15mm 20mm;
-      margin: 0 auto;
-      background: white;
-      position: relative;
-    }
-    
-    @media print {
-      body { background: none; }
-      .page { 
-        margin: 0; 
-        padding: 10mm 15mm;
-        page-break-after: always;
-      }
-      .no-print { display: none !important; }
-    }
-    
-    .header {
-      display: flex;
-      justify-content: space-between;
-      align-items: flex-start;
-      margin-bottom: 20px;
-      padding-bottom: 15px;
-      border-bottom: 2px solid #2563eb;
-    }
-    
-    .logo-section {
-      display: flex;
-      align-items: center;
-      gap: 12px;
-    }
-    
-    .logo {
-      width: 48px;
-      height: 48px;
-      background: linear-gradient(135deg, #2563eb 0%, #1d4ed8 100%);
-      border-radius: 12px;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      color: white;
-      font-weight: bold;
-      font-size: 18px;
-    }
-    
-    .title-section h1 {
-      font-size: 24px;
-      font-weight: 700;
-      color: #1a1a2e;
-      margin-bottom: 4px;
-    }
-    
-    .title-section p {
-      font-size: 11px;
-      color: #6b7280;
-      text-transform: uppercase;
-      letter-spacing: 1px;
-    }
-    
-    .date-section {
-      text-align: right;
-      font-size: 10px;
-      color: #6b7280;
-    }
-    
-    .date-section strong {
-      display: block;
-      font-size: 11px;
-      color: #374151;
-      margin-bottom: 2px;
-    }
-    
-    .summary-card {
-      background: linear-gradient(135deg, #f0f9ff 0%, #e0f2fe 100%);
-      border: 1px solid #bae6fd;
-      border-radius: 12px;
-      padding: 20px;
-      margin-bottom: 25px;
-      display: flex;
-      align-items: center;
-      gap: 20px;
-    }
-    
-    .summary-icon {
-      width: 64px;
-      height: 64px;
-      background: #2563eb;
-      border-radius: 16px;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      color: white;
-      font-size: 28px;
-    }
-    
-    .summary-content {
-      flex: 1;
-    }
-    
-    .summary-label {
-      font-size: 11px;
-      color: #6b7280;
-      text-transform: uppercase;
-      letter-spacing: 0.5px;
-      margin-bottom: 4px;
-    }
-    
-    .summary-value {
-      font-size: 32px;
-      font-weight: 800;
-      color: #1a1a2e;
-    }
-    
-    .summary-currency {
-      font-size: 16px;
-      color: #2563eb;
-      margin-left: 4px;
-    }
-    
-    .section-title {
-      font-size: 14px;
-      font-weight: 700;
-      color: #1a1a2e;
-      margin-bottom: 12px;
-      display: flex;
-      align-items: center;
-      gap: 8px;
-    }
-    
-    .section-title::before {
-      content: '';
-      width: 4px;
-      height: 16px;
-      background: #2563eb;
-      border-radius: 2px;
-    }
-    
-    table {
-      width: 100%;
-      border-collapse: collapse;
-      margin-bottom: 20px;
-    }
-    
-    th {
-      background: #f8fafc;
-      color: #6b7280;
-      font-size: 10px;
-      font-weight: 600;
-      text-transform: uppercase;
-      letter-spacing: 0.5px;
-      padding: 12px 10px;
-      text-align: left;
-      border-bottom: 2px solid #e5e7eb;
-    }
-    
-    td {
-      padding: 10px;
-      border-bottom: 1px solid #f1f5f9;
-      font-size: 11px;
-    }
-    
-    tr:hover {
-      background: #f8fafc;
-    }
-    
-    .text-right {
-      text-align: right;
-    }
-    
-    .text-center {
-      text-align: center;
-    }
-    
-    .total-row {
-      background: linear-gradient(90deg, #f0f9ff 0%, #fff 100%);
-      font-weight: 700;
-    }
-    
-    .total-row td {
-      border-bottom: 2px solid #2563eb;
-      padding: 14px 10px;
-    }
-    
-    .notes-section {
-      background: #fffbeb;
-      border: 1px solid #fcd34d;
-      border-radius: 8px;
-      padding: 15px;
-      margin-top: 20px;
-    }
-    
-    .notes-title {
-      font-size: 12px;
-      font-weight: 700;
-      color: #92400e;
-      margin-bottom: 8px;
-    }
-    
-    .notes-list {
-      list-style: none;
-    }
-    
-    .notes-list li {
-      font-size: 10px;
-      color: #78350f;
-      padding: 4px 0;
-      padding-left: 16px;
-      position: relative;
-    }
-    
-    .notes-list li::before {
-      content: '•';
-      position: absolute;
-      left: 0;
-      color: #f59e0b;
-    }
-    
-    .footer {
-      position: absolute;
-      bottom: 15mm;
-      left: 20mm;
-      right: 20mm;
-      text-align: center;
-      font-size: 9px;
-      color: #9ca3af;
-      border-top: 1px solid #e5e7eb;
-      padding-top: 10px;
-    }
-    
-    .watermark {
-      position: absolute;
-      top: 50%;
-      left: 50%;
-      transform: translate(-50%, -50%) rotate(-45deg);
-      font-size: 80px;
-      color: rgba(37, 99, 235, 0.03);
-      font-weight: 900;
-      white-space: nowrap;
-      pointer-events: none;
-    }
-    
-    .print-btn {
-      position: fixed;
-      bottom: 20px;
-      right: 20px;
-      background: #2563eb;
-      color: white;
-      border: none;
-      padding: 12px 24px;
-      border-radius: 8px;
-      font-size: 14px;
-      font-weight: 600;
-      cursor: pointer;
-      box-shadow: 0 4px 12px rgba(37, 99, 235, 0.3);
-      display: flex;
-      align-items: center;
-      gap: 8px;
-      transition: all 0.2s;
-    }
-    
-    .print-btn:hover {
-      background: #1d4ed8;
-      transform: translateY(-2px);
-    }
-    
-    @media print {
-      .print-btn { display: none !important; }
-    }
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif; color: #1a1a2e; background: #fff; font-size: 12px; line-height: 1.5; }
+    .page { width: 210mm; min-height: 297mm; padding: 15mm 20mm; margin: 0 auto; background: white; position: relative; }
+    @media print { body { background: none; } .page { margin: 0; padding: 10mm 15mm; page-break-after: always; } .no-print { display: none !important; } }
+    .header { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 20px; padding-bottom: 15px; border-bottom: 2px solid #2563eb; }
+    .logo-section { display: flex; align-items: center; gap: 12px; }
+    .logo { width: 48px; height: 48px; background: linear-gradient(135deg, #2563eb 0%, #1d4ed8 100%); border-radius: 12px; display: flex; align-items: center; justify-content: center; color: white; font-weight: bold; font-size: 18px; }
+    .title-section h1 { font-size: 24px; font-weight: 700; color: #1a1a2e; margin-bottom: 4px; }
+    .title-section p { font-size: 11px; color: #6b7280; text-transform: uppercase; letter-spacing: 1px; }
+    .date-section { text-align: right; font-size: 10px; color: #6b7280; }
+    .date-section strong { display: block; font-size: 11px; color: #374151; margin-bottom: 2px; }
+    .summary-card { background: linear-gradient(135deg, #f0f9ff 0%, #e0f2fe 100%); border: 1px solid #bae6fd; border-radius: 12px; padding: 20px; margin-bottom: 25px; display: flex; align-items: center; gap: 20px; }
+    .summary-icon { width: 64px; height: 64px; background: #2563eb; border-radius: 16px; display: flex; align-items: center; justify-content: center; color: white; font-size: 28px; }
+    .summary-content { flex: 1; }
+    .summary-label { font-size: 11px; color: #6b7280; text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 4px; }
+    .summary-value { font-size: 32px; font-weight: 800; color: #1a1a2e; }
+    .summary-currency { font-size: 16px; color: #2563eb; margin-left: 4px; }
+    .section-title { font-size: 14px; font-weight: 700; color: #1a1a2e; margin-bottom: 12px; display: flex; align-items: center; gap: 8px; }
+    .section-title::before { content: ''; width: 4px; height: 16px; background: #2563eb; border-radius: 2px; }
+    table { width: 100%; border-collapse: collapse; margin-bottom: 20px; }
+    th { background: #f8fafc; color: #6b7280; font-size: 10px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px; padding: 12px 10px; text-align: left; border-bottom: 2px solid #e5e7eb; }
+    td { padding: 10px; border-bottom: 1px solid #f1f5f9; font-size: 11px; }
+    tr:hover { background: #f8fafc; }
+    .text-right { text-align: right; }
+    .text-center { text-align: center; }
+    .total-row { background: linear-gradient(90deg, #f0f9ff 0%, #fff 100%); font-weight: 700; }
+    .total-row td { border-bottom: 2px solid #2563eb; padding: 14px 10px; }
+    .notes-section { background: #fffbeb; border: 1px solid #fcd34d; border-radius: 8px; padding: 15px; margin-top: 20px; }
+    .notes-title { font-size: 12px; font-weight: 700; color: #92400e; margin-bottom: 8px; }
+    .notes-list { list-style: none; }
+    .notes-list li { font-size: 10px; color: #78350f; padding: 4px 0; padding-left: 16px; position: relative; }
+    .notes-list li::before { content: '•'; position: absolute; left: 0; color: #f59e0b; }
+    .footer { position: absolute; bottom: 15mm; left: 20mm; right: 20mm; text-align: center; font-size: 9px; color: #9ca3af; border-top: 1px solid #e5e7eb; padding-top: 10px; }
+    .watermark { position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%) rotate(-45deg); font-size: 80px; color: rgba(37, 99, 235, 0.03); font-weight: 900; white-space: nowrap; pointer-events: none; }
+    .print-btn { position: fixed; bottom: 20px; right: 20px; background: #2563eb; color: white; border: none; padding: 12px 24px; border-radius: 8px; font-size: 14px; font-weight: 600; cursor: pointer; box-shadow: 0 4px 12px rgba(37, 99, 235, 0.3); display: flex; align-items: center; gap: 8px; transition: all 0.2s; }
+    .print-btn:hover { background: #1d4ed8; transform: translateY(-2px); }
+    @media print { .print-btn { display: none !important; } }
   </style>
 </head>
 <body>
   <div class="page">
     <div class="watermark">ArchAnalyze</div>
-    
     <div class="header">
       <div class="logo-section">
         <div class="logo">A</div>
         <div class="title-section">
-          <h1>\${txt.title}</h1>
-          <p>\${txt.subtitle}</p>
+          <h1>${txt.title}</h1>
+          <p>${txt.subtitle}</p>
         </div>
       </div>
       <div class="date-section">
-        <strong>\${txt.date}</strong>
-        \${dateStr}<br>
-        \${timeStr}
+        <strong>${txt.date}</strong>
+        ${dateStr}<br>
+        ${timeStr}
       </div>
     </div>
-    
     <div class="summary-card">
       <div class="summary-icon">¥</div>
       <div class="summary-content">
-        <div class="summary-label">\${txt.totalBudget}</div>
-        <div class="summary-value">¥\${data.totalBudget.toLocaleString()}<span class="summary-currency">CNY</span></div>
+        <div class="summary-label">${txt.totalBudget}</div>
+        <div class="summary-value">¥${data.totalBudget.toLocaleString()}<span class="summary-currency">CNY</span></div>
       </div>
     </div>
-    
-    <div class="section-title">\${txt.quantityList}</div>
+    <div class="section-title">${txt.quantityList}</div>
     <table>
       <thead>
         <tr>
           <th style="width: 30px">#</th>
-          <th>\${txt.materialName}</th>
-          <th class="text-center">\${txt.quantity}</th>
-          <th class="text-center">\${txt.unit}</th>
-          <th class="text-right">\${txt.unitPrice} (¥)</th>
-          <th class="text-right">\${txt.totalPrice} (¥)</th>
+          <th>${txt.materialName}</th>
+          <th class="text-center">${txt.quantity}</th>
+          <th class="text-center">${txt.unit}</th>
+          <th class="text-right">${txt.unitPrice} (¥)</th>
+          <th class="text-right">${txt.totalPrice} (¥)</th>
         </tr>
       </thead>
       <tbody>
-        \${data.entries.map((entry, index) => \`
-          <tr>
-            <td class="text-center">\${index + 1}</td>
-            <td>\${entry.materialName}</td>
-            <td class="text-center">\${entry.quantity || '-'}</td>
-            <td class="text-center">\${entry.unit}</td>
-            <td class="text-right">¥\${entry.unitPrice.toLocaleString()}</td>
-            <td class="text-right">¥\${entry.totalPrice.toLocaleString()}</td>
-          </tr>
-        \`).join('')}
+        ${tableRows}
         <tr class="total-row">
-          <td colspan="5" class="text-right" style="font-weight: 700;">\${txt.totalBudget}</td>
-          <td class="text-right" style="font-size: 16px; color: #2563eb;">¥\${data.totalBudget.toLocaleString()}</td>
+          <td colspan="5" class="text-right" style="font-weight: 700;">${txt.totalBudget}</td>
+          <td class="text-right" style="font-size: 16px; color: #2563eb;">¥${data.totalBudget.toLocaleString()}</td>
         </tr>
       </tbody>
     </table>
-    
     <div class="notes-section">
-      <div class="notes-title">\${txt.notes}</div>
+      <div class="notes-title">${txt.notes}</div>
       <ul class="notes-list">
-        <li>\${txt.note1}</li>
-        <li>\${txt.note2}</li>
-        <li>\${txt.note3}</li>
+        <li>${txt.note1}</li>
+        <li>${txt.note2}</li>
+        <li>${txt.note3}</li>
       </ul>
     </div>
-    
-    <div class="footer">
-      \${txt.footer} | \${dateStr} \${timeStr}
-    </div>
+    <div class="footer">${txt.footer} | ${dateStr} ${timeStr}</div>
   </div>
-  
   <button class="print-btn no-print" onclick="window.print()">
-    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-      <polyline points="6 9 6 2 18 2 18 9"></polyline>
-      <path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"></path>
-      <rect x="6" y="14" width="12" height="8"></rect>
-    </svg>
-    \${data.language === 'zh' ? '打印 / 导出 PDF' : data.language === 'ja' ? '印刷 / PDFエクスポート' : 'Print / Export PDF'}
+    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 6 2 18 2 18 9"></polyline><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"></path><rect x="6" y="14" width="12" height="8"></rect></svg>
+    ${data.language === 'zh' ? '打印 / 导出 PDF' : data.language === 'ja' ? '印刷 / PDFエクスポート' : 'Print / Export PDF'}
   </button>
 </body>
-</html>
-\`;
+</html>`;
 
   printWindow.document.write(html);
   printWindow.document.close();
